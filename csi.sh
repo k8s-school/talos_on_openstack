@@ -31,14 +31,6 @@ kubectl label namespace "$NS" \
   pod-security.kubernetes.io/enforce=privileged \
   --overwrite
 
-# Create cloud-config secret if it doesn't exist
-if ! kubectl get secret cloud-config -n "$NS" &> /dev/null; then
-    echo "Creating cloud-config secret..."
-    kubectl create secret generic cloud-config --from-file=cloud.conf=$DIR/cloud.conf -n "$NS"
-else
-    echo "cloud-config secret already exists"
-fi
-
 
 # Add Helm repo if not already present
 if ! helm repo list | grep -q "^cpo"; then
