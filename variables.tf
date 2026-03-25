@@ -42,11 +42,6 @@ variable "worker_count" {
   default     = 2
 }
 
-variable "security_group_name" {
-  description = "Security group name"
-  type        = string
-  default     = "talos"
-}
 
 variable "talos_version" {
   description = "Talos version"

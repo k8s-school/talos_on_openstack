@@ -1,6 +1,6 @@
 resource "openstack_networking_secgroup_v2" "talos" {
-  name        = var.security_group_name
-  description = "Security group for Talos cluster"
+  name        = var.cluster_name
+  description = "Security group for Talos cluster ${var.cluster_name}"
 }
 
 # Talos API: Required for talosctl (bootstrap, upgrade, dashboard)
