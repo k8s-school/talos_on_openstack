@@ -28,11 +28,12 @@ echo "Installing OpenTofu v${TOFU_VERSION}..."
 if command -v tofu &> /dev/null; then
     echo "OpenTofu is already installed: $(tofu version)"
 else
-    wget "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_amd64.zip"
-    unzip "tofu_${TOFU_VERSION}_linux_amd64.zip"
-    sudo mv tofu /usr/local/bin/
+    TOFU_ZIP="/tmp/tofu_${TOFU_VERSION}_linux_amd64.zip"
+    wget -O "$TOFU_ZIP" "https://github.com/opentofu/opentofu/releases/download/v${TOFU_VERSION}/tofu_${TOFU_VERSION}_linux_amd64.zip"
+    unzip "$TOFU_ZIP" -d /tmp/
+    sudo mv /tmp/tofu /usr/local/bin/
     sudo chmod +x /usr/local/bin/tofu
-    rm "tofu_${TOFU_VERSION}_linux_amd64.zip"
+    rm -f "$TOFU_ZIP"
     echo "OpenTofu installed: $(tofu version)"
 fi
 
@@ -41,9 +42,10 @@ echo "Installing talosctl ${TALOS_VERSION}..."
 if command -v talosctl &> /dev/null; then
     echo "talosctl is already installed: $(talosctl version --short --client)"
 else
-    curl -Lo talosctl "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
-    chmod +x talosctl
-    sudo mv talosctl /usr/local/bin/
+    TALOSCTL_BIN="/tmp/talosctl"
+    curl -Lo "$TALOSCTL_BIN" "https://github.com/siderolabs/talos/releases/download/${TALOS_VERSION}/talosctl-linux-amd64"
+    chmod +x "$TALOSCTL_BIN"
+    sudo mv "$TALOSCTL_BIN" /usr/local/bin/
     echo "talosctl installed: $(talosctl version --short --client)"
 fi
 
@@ -52,9 +54,10 @@ echo "Installing kubectl ${KUBECTL_VERSION}..."
 if command -v kubectl &> /dev/null; then
     echo "kubectl is already installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
 else
-    curl -LO "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
-    chmod +x kubectl
-    sudo mv kubectl /usr/local/bin/
+    KUBECTL_BIN="/tmp/kubectl"
+    curl -Lo "$KUBECTL_BIN" "https://dl.k8s.io/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl"
+    chmod +x "$KUBECTL_BIN"
+    sudo mv "$KUBECTL_BIN" /usr/local/bin/
     echo "kubectl installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
 fi
 

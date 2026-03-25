@@ -53,9 +53,14 @@ tofu output -raw talos_config > ~/.talos/config
 talosctl config endpoint "$CP_IP"
 talosctl config node "$CP_IP"
 
-# Bootstrap the cluster using the first control plane node
+# Bootstrap the cluster using the first control plane node (idempotent)
 echo "Bootstrapping cluster..."
-talosctl bootstrap
+if talosctl health --wait-timeout=10s &> /dev/null; then
+    echo "Cluster is already bootstrapped and healthy"
+else
+    echo "Bootstrapping cluster..."
+    talosctl bootstrap
+fi
 
 # Wait for the cluster to be ready
 echo "Waiting for cluster to be ready..."
@@ -66,13 +71,39 @@ echo "Switching to VIP endpoint..."
 talosctl config endpoint "$VIP_IP"
 talosctl config node "$VIP_IP"
 
-# Create kubeconfig for the cluster
+# Create kubeconfig for the cluster (idempotent)
 echo "Creating kubeconfig..."
-talosctl kubeconfig
+if kubectl cluster-info &> /dev/null; then
+    echo "Kubeconfig already exists and cluster is accessible"
+else
+    echo "Generating kubeconfig..."
+    talosctl kubeconfig
+fi
 
+# Wait for cluster to be fully ready
+echo "Waiting for all nodes to be ready..."
+kubectl wait --for=condition=Ready nodes --all --timeout=300s
+
+# Install OpenStack CSI driver for storage
+echo "Installing OpenStack CSI driver..."
+if [ -f "$DIR/csi.sh" ]; then
+    echo "Running CSI installation script..."
+    bash "$DIR/csi.sh"
+    echo "CSI driver installed successfully!"
+else
+    echo "Warning: CSI script not found at $DIR/csi.sh"
+    echo "You may need to install the OpenStack CSI driver manually for persistent volumes"
+fi
+
+echo ""
 echo "=== Deployment complete! ==="
 echo "Cluster endpoint: $(tofu output -raw cluster_endpoint)"
 echo "VIP IP: $VIP_IP"
 echo ""
-echo "You can now use kubectl to interact with your cluster:"
-echo "kubectl get nodes"
+echo "Cluster status:"
+kubectl get nodes
+echo ""
+echo "Available storage classes:"
+kubectl get storageclass
+echo ""
+echo "Your Talos cluster is ready to use!"
