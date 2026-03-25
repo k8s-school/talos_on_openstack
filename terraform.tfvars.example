@@ -1,0 +1,19 @@
+# Example configuration values
+cluster_name = "fink-cluster"
+# vip_ip      = "10.180.15.250"  # Optional: specify VIP IP, otherwise auto-assigned
+network_name             = "fink"
+controlplane_flavor_name = "m1.small"
+worker_flavor_name       = "m1.medium"
+key_pair_name   = "fjammes-key"
+public_key_path = "~/.ssh/id_rsa.pub"
+
+# Cluster sizing
+control_plane_count = 3
+worker_count       = 2
+
+# Security group
+security_group_name = "talos"
+
+# Versions
+talos_version      = "v1.12.5"
+kubernetes_version = "v1.35.0"

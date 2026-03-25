@@ -1,4 +1,3 @@
-. ~/.novacreds/fink-openrc.sh
 
 if [ -f ~/.novacreds/fink-openrc.sh ]; then
     . ~/.novacreds/fink-openrc.sh
@@ -10,4 +9,4 @@ if [ -f ~/openstack_cli/bin/activate ]; then
     . ~/openstack_cli/bin/activate
 fi
 
-export PATH=$HOME/kadmiral/talos-cc/bin:$PATH
+export PATH=$PWD/bin:$PATH

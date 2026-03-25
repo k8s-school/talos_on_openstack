@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /home/fjammes/src/github.com/k8s-school/talos_on_openstack/deploy.sh)",
+      "Bash(chmod +x /home/fjammes/src/github.com/k8s-school/talos_on_openstack/destroy.sh)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
