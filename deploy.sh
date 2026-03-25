@@ -39,7 +39,13 @@ VIP_IP=$(tofu output -raw vip_ip)
 echo "Control plane IP: $CP_IP"
 echo "VIP IP: $VIP_IP"
 
-# Save Talos configuration
+# Backup existing Talos configuration if it exists
+if [ -f ~/.talos/config ]; then
+    echo "Backing up existing Talos configuration..."
+    cp ~/.talos/config ~/.talos/config_$(date +%Y%m%d%H%M)
+fi
+
+# Save new Talos configuration
 echo "Saving Talos configuration..."
 tofu output -raw talos_config > ~/.talos/config
 
