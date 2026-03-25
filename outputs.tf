@@ -1,6 +1,6 @@
 output "talos_config" {
   description = "Talos client configuration"
-  value       = talos_client_configuration.cluster.talos_config
+  value       = data.talos_client_configuration.cluster.talos_config
   sensitive   = true
 }
 
@@ -26,12 +26,12 @@ output "cluster_endpoint" {
 
 output "controlplane_machine_config" {
   description = "Control plane machine configuration"
-  value       = talos_machine_configuration.controlplane.machine_configuration
+  value       = data.talos_machine_configuration.controlplane.machine_configuration
   sensitive   = true
 }
 
 output "worker_machine_config" {
   description = "Worker machine configuration"
-  value       = talos_machine_configuration.worker.machine_configuration
+  value       = data.talos_machine_configuration.worker.machine_configuration
   sensitive   = true
 }

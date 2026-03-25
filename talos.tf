@@ -4,14 +4,14 @@ resource "talos_machine_secrets" "cluster" {
 }
 
 # Generate Talos client configuration
-resource "talos_client_configuration" "cluster" {
+data "talos_client_configuration" "cluster" {
   cluster_name         = var.cluster_name
   client_configuration = talos_machine_secrets.cluster.client_configuration
-  endpoints            = [var.vip_ip]
+  endpoints            = [local.vip_ip]
 }
 
 # Generate control plane configuration
-resource "talos_machine_configuration" "controlplane" {
+data "talos_machine_configuration" "controlplane" {
   cluster_name     = var.cluster_name
   cluster_endpoint = "https://${local.vip_ip}:6443"
   machine_type     = "controlplane"
@@ -49,7 +49,7 @@ resource "talos_machine_configuration" "controlplane" {
 }
 
 # Generate worker configuration
-resource "talos_machine_configuration" "worker" {
+data "talos_machine_configuration" "worker" {
   cluster_name     = var.cluster_name
   cluster_endpoint = "https://${local.vip_ip}:6443"
   machine_type     = "worker"
