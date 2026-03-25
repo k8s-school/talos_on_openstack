@@ -66,9 +66,9 @@ cp terraform.tfvars.example terraform.tfvars
 
 Edit `terraform.tfvars` with your specific values:
 - Network name
-- Flavor
-- SSH key pair name
-- IP addresses
+- Control plane and worker flavors
+- Cluster sizing
+- Optional: specific VIP IP address
 
 ## Deployment
 

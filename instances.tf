@@ -4,7 +4,6 @@ resource "openstack_compute_instance_v2" "controlplane" {
   name            = "talos-control-plane-${count.index + 1}"
   image_id        = data.openstack_images_image_v2.talos.id
   flavor_id       = data.openstack_compute_flavor_v2.controlplane_flavor.id
-  key_pair        = openstack_compute_keypair_v2.keypair.name
   security_groups = [openstack_networking_secgroup_v2.talos.name]
   user_data       = base64encode(data.talos_machine_configuration.controlplane.machine_configuration)
 
@@ -44,7 +43,6 @@ resource "openstack_compute_instance_v2" "worker" {
   name            = "talos-worker-${count.index + 1}"
   image_id        = data.openstack_images_image_v2.talos.id
   flavor_id       = data.openstack_compute_flavor_v2.worker_flavor.id
-  key_pair        = openstack_compute_keypair_v2.keypair.name
   security_groups = [openstack_networking_secgroup_v2.talos.name]
   user_data       = base64encode(data.talos_machine_configuration.worker.machine_configuration)
 

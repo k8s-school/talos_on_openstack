@@ -29,17 +29,6 @@ variable "worker_flavor_name" {
   default     = "m1.medium"
 }
 
-variable "key_pair_name" {
-  description = "OpenStack key pair name"
-  type        = string
-  default     = "fjammes-key"
-}
-
-variable "public_key_path" {
-  description = "Path to SSH public key"
-  type        = string
-  default     = "~/.ssh/id_rsa.pub"
-}
 
 variable "control_plane_count" {
   description = "Number of control plane nodes"

@@ -4,8 +4,6 @@ cluster_name = "fink-cluster"
 network_name             = "fink"
 controlplane_flavor_name = "m1.small"
 worker_flavor_name       = "m1.medium"
-key_pair_name   = "fjammes-key"
-public_key_path = "~/.ssh/id_rsa.pub"
 
 # Cluster sizing
 control_plane_count = 3
