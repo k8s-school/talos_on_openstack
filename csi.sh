@@ -52,14 +52,10 @@ helm repo update
 
 CHART_VERSION="2.35.0"
 
-# Install CSI driver if not already installed
-if ! helm list -n "$NS" | grep -q "cinder-csi"; then
-    echo "Installing cinder-csi..."
-    helm install cinder-csi cpo/openstack-cinder-csi \
-        --namespace "$NS" \
-        --version "$CHART_VERSION" \
-        -f $DIR/values.yaml
-else
-    echo "cinder-csi is already installed"
-    echo "Use 'helm upgrade' if you want to update it"
-fi
+# Install or upgrade CSI driver (idempotent)
+echo "Installing/upgrading cinder-csi..."
+helm upgrade --install cinder-csi cpo/openstack-cinder-csi \
+    --namespace "$NS" \
+    --version "$CHART_VERSION" \
+    -f $DIR/values.yaml \
+    --wait
