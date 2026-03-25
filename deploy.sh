@@ -6,6 +6,20 @@ DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 echo "=== Deploying Talos cluster with OpenTofu ==="
 
+# Check if OpenStack credentials are sourced
+if [ -z "$OS_AUTH_URL" ]; then
+    echo "ERROR: OpenStack credentials not found!"
+    echo "Please source your OpenStack credentials file:"
+    echo "  source ~/.novacreds/fink-openrc.sh"
+    echo "Or set the required environment variables (OS_AUTH_URL, OS_USERNAME, etc.)"
+    exit 1
+fi
+
+echo "Using OpenStack credentials:"
+echo "  Auth URL: $OS_AUTH_URL"
+echo "  Project: $OS_PROJECT_NAME"
+echo "  User: $OS_USERNAME"
+
 # Initialize OpenTofu
 echo "Initializing OpenTofu..."
 tofu init

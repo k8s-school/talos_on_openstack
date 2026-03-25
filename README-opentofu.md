@@ -30,9 +30,22 @@ The script checks if tools are already installed and skips them if found.
 
 ### 1. OpenStack Environment
 
-Source your OpenStack credentials:
+Source your OpenStack credentials before running any OpenTofu commands:
 ```bash
 source ~/.novacreds/fink-openrc.sh
+```
+
+This sets the required environment variables:
+- `OS_AUTH_URL`: OpenStack authentication URL
+- `OS_USERNAME`: Your username
+- `OS_PASSWORD`: Your password
+- `OS_PROJECT_NAME`: Project name
+- `OS_USER_DOMAIN_NAME`: User domain
+- `OS_PROJECT_DOMAIN_NAME`: Project domain
+
+You can verify the credentials are loaded:
+```bash
+env | grep OS_
 ```
 
 ### 2. Create Talos Image

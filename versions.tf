@@ -13,7 +13,15 @@ terraform {
 }
 
 provider "openstack" {
-  # Configuration will be loaded from environment variables or openrc file
+  # Configuration loaded from environment variables
+  # Source your openrc file: source ~/.novacreds/fink-openrc.sh
+  # Or set these environment variables:
+  # - OS_AUTH_URL
+  # - OS_USERNAME
+  # - OS_PASSWORD
+  # - OS_PROJECT_NAME
+  # - OS_USER_DOMAIN_NAME
+  # - OS_PROJECT_DOMAIN_NAME
 }
 
 provider "talos" {}
