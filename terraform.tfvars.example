@@ -2,7 +2,7 @@
 cluster_name = "fink-cluster"
 # vip_ip      = "10.180.15.250"  # Optional: specify VIP IP, otherwise auto-assigned
 network_name             = "fink"
-controlplane_flavor_name = "m1.small"
+controlplane_flavor_name = "m1.medium"
 worker_flavor_name       = "m1.medium"
 
 # Cluster sizing
