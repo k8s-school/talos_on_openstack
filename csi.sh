@@ -51,3 +51,5 @@ helm upgrade --install cinder-csi cpo/openstack-cinder-csi \
     --version "$CHART_VERSION" \
     -f $DIR/values.yaml \
     --wait
+
+kubectl patch storageclass csi-cinder-sc-delete -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
