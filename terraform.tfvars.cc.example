@@ -1,0 +1,14 @@
+# Example configuration values
+cluster_name = "tofu-fink"
+# vip_ip      = "10.180.15.250"  # Optional: specify VIP IP, otherwise auto-assigned
+network_name             = "fink"
+controlplane_flavor_name = "m1.medium"
+worker_flavor_name       = "m1.large"
+
+# Cluster sizing
+control_plane_count = 3
+worker_count       = 8
+
+# Versions
+talos_version      = "v1.12.5"
+kubernetes_version = "v1.35.0"
