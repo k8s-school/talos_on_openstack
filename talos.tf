@@ -68,6 +68,31 @@ data "talos_machine_configuration" "worker" {
           }]
         }
       }
+    }),
+    # Place the EPHEMERAL volume (/var, including /var/lib/containerd and
+    # /var/lib/kubelet) on the large secondary disk (vdb, the OpenStack
+    # ephemeral disk) instead of the small root disk. Large container images
+    # (e.g. fink-broker, ~14 GB unpacked) otherwise fill the ~17 GB root /var
+    # and drivers get evicted with "no space left on device".
+    #
+    # Workers only: control planes keep EPHEMERAL on the root disk so etcd is
+    # not placed on an ephemeral disk. "!system_disk" matches vdb (the only
+    # non-install disk on a worker); "grow" makes EPHEMERAL fill it.
+    #
+    # NOTE: a VolumeConfig only applies when the volume is first provisioned.
+    # New workers get this automatically; existing workers must have their
+    # EPHEMERAL volume wiped and reboot (see "Enlarging worker /var" in
+    # README.md).
+    yamlencode({
+      apiVersion = "v1alpha1"
+      kind       = "VolumeConfig"
+      name       = "EPHEMERAL"
+      provisioning = {
+        diskSelector = {
+          match = "!system_disk"
+        }
+        grow = true
+      }
     })
   ]
 }

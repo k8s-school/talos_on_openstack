@@ -147,6 +147,131 @@ Then apply the changes:
 tofu apply
 ```
 
+## Node image garbage collection
+
+Talos delegates container-image garbage collection to the kubelet, and there is
+no `talosctl image rm` command. By default the kubelet only prunes images under
+disk pressure (`imageGCHighThresholdPercent`, 85% of `/var`). On a lightly
+loaded cluster that threshold is never reached, so obsolete images pile up on
+the nodes forever.
+
+A common offender is the OLM `operatorhubio-catalog` CatalogSource: it re-pulls
+`quay.io/operatorhubio/catalog:latest` on every `registryPoll` interval and
+leaves the previous ~120 MB digest behind on the node running the pod.
+
+The `image-gc.sh` script fixes this by setting the kubelet
+`imageMaximumGCAge` on every node. With it, the kubelet prunes images that have
+been unused for longer than the configured age, regardless of disk pressure.
+Images backing running containers are always protected.
+
+```bash
+# Set the retention policy on all nodes (default: 168h / 7 days).
+# Applying kubelet config restarts the kubelet only; it does not reboot nodes.
+./image-gc.sh
+
+# Use a different retention (e.g. 48 hours).
+./image-gc.sh -a 48h
+
+# Also trigger an immediate one-shot cleanup now: the script temporarily lowers
+# the age so the next kubelet GC cycle removes stale images, waits for that
+# cycle (~5 min), then restores the retention policy.
+./image-gc.sh -p
+
+# Run ./image-gc.sh -h for all options.
+```
+
+The script discovers the node addresses from the Kubernetes API, so it needs a
+working `kubectl` context and `talosctl` endpoints (both configured by
+`deploy.sh`).
+
+## Enlarging worker `/var` (EPHEMERAL on the secondary disk)
+
+The OpenStack flavors give each node a small root disk (~17 GB usable for the
+Talos EPHEMERAL volume, i.e. `/var`) **and** a large secondary ephemeral disk
+(`/dev/vdb`, 40-80 GB) that Talos discovers but does not use. Container images
+live under `/var/lib/containerd` on the small root `/var`, so a large image
+(e.g. `fink-broker`, ~14 GB unpacked) can fill it and get pods evicted with
+`no space left on device` / `low on resource: ephemeral-storage`.
+
+`talos.tf` therefore pins the **worker** EPHEMERAL volume onto `vdb` with a
+`VolumeConfig` (control planes are left on the root disk to keep etcd off an
+ephemeral disk):
+
+```yaml
+apiVersion: v1alpha1
+kind: VolumeConfig
+name: EPHEMERAL
+provisioning:
+  diskSelector:
+    match: "!system_disk"   # the non-install disk, i.e. vdb
+  grow: true                # fill the whole disk
+```
+
+A `VolumeConfig` is only honored **when the volume is first provisioned**, so:
+
+- **New clusters / new workers**: the worker machine config already carries the
+  `VolumeConfig`. Note that the OpenStack secondary disk ships pre-formatted, so
+  Talos cannot claim it until it is wiped once (`talosctl wipe disk vdb`); a
+  fresh worker therefore needs that one-time wipe before EPHEMERAL lands on
+  `vdb` and the kubelet turns Ready.
+- **Existing workers**: the volume is already on the root disk and must be
+  re-provisioned. Do it **one worker at a time** and validate on the first one
+  before rolling to the rest.
+
+### Migrate an existing worker (recommended: recreate via OpenTofu)
+
+The most deterministic way is to recreate the instance so it boots with the new
+config. Worker state (HDFS/Kafka) lives on Cinder PVCs and survives.
+
+```bash
+kubectl drain <k8s-node> --ignore-daemonsets --delete-emptydir-data --force
+tofu taint 'openstack_compute_instance_v2.worker[<index>]'   # 0-based
+tofu apply
+# Wait for the node to rejoin, then:
+kubectl uncordon <k8s-node>
+```
+
+### Alternative: live wipe without reprovisioning
+
+If you prefer not to recreate the VM, push the config and wipe only the
+EPHEMERAL volume so Talos rebuilds it on `vdb`:
+
+```bash
+NODE=<worker-ip>
+K8SNODE=<k8s-node>
+
+# 1. Store the VolumeConfig on the node
+talosctl -n "$NODE" patch mc -p '{"apiVersion":"v1alpha1","kind":"VolumeConfig","name":"EPHEMERAL","provisioning":{"diskSelector":{"match":"!system_disk"},"grow":true}}'
+
+# 2. Drain and wipe the current EPHEMERAL, then reboot
+kubectl drain "$K8SNODE" --ignore-daemonsets --delete-emptydir-data --force
+talosctl -n "$NODE" reset --graceful=false --reboot --system-labels-to-wipe EPHEMERAL
+
+# 3. IMPORTANT: the OpenStack secondary disk (vdb) ships pre-formatted (xfs,
+#    label "ephemeral0"), so after reboot EPHEMERAL provisioning FAILS with
+#    "1 have wrong format". Wipe vdb so Talos can claim it:
+talosctl -n "$NODE" wipe disk vdb
+# Talos then provisions EPHEMERAL on vdb automatically; kubelet turns Ready.
+
+kubectl uncordon "$K8SNODE"
+```
+
+If EPHEMERAL stays `failed`, check the reason with:
+
+```bash
+talosctl -n "$NODE" get volumestatus EPHEMERAL -o yaml | grep -E 'phase|errorMessage'
+```
+
+### Verify
+
+After the worker is back, confirm EPHEMERAL now lives on `vdb` and `/var` is
+large:
+
+```bash
+talosctl -n "$NODE" get discoveredvolumes | grep EPHEMERAL
+talosctl -n "$NODE" mounts | awk '$NF=="/var"'   # SIZE column should be ~vdb size
+```
+
 ## Cleanup
 
 To destroy the cluster:
