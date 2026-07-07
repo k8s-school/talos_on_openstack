@@ -123,6 +123,17 @@ data "talos_machine_configuration" "bigworker" {
         nodeLabels = {
           "fink.io/pool" = "raw2science"
         }
+        # TODO(taint): machine.nodeTaints is applied by Talos's NodeApplyController
+        # using the kubelet identity, but NodeRestriction forbids a node from
+        # modifying its own taints ("node ... is not allowed to modify taints"),
+        # so the taint below is NOT applied on a fresh bigworker (the label is).
+        # Replace it with a kubelet register-with-taints arg, which is applied at
+        # node registration (allowed by NodeRestriction), e.g.:
+        #   kubelet = { extraArgs = { "register-with-taints" = "dedicated=raw2science:NoSchedule" } }
+        # (the critical daemonsets - flannel, kube-proxy, cinder-csi - tolerate
+        # all taints, so a NoSchedule taint is safe at registration).
+        # Until then the taint must be applied manually:
+        #   kubectl taint node <bigworker> dedicated=raw2science:NoSchedule
         nodeTaints = {
           dedicated = "raw2science:NoSchedule"
         }
