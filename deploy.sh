@@ -80,6 +80,19 @@ else
     talosctl kubeconfig
 fi
 
+# Workers place their EPHEMERAL volume (/var, incl. /var/lib/containerd) on the
+# large secondary disk vdb (see talos.tf) so large container images fit.
+# OpenStack ships that disk pre-formatted, so Talos cannot claim it until it is
+# wiped once; until then the worker EPHEMERAL volume stays "failed" and the node
+# never becomes Ready. Wipe vdb on every worker so Talos provisions EPHEMERAL.
+echo "Wiping secondary disk (vdb) on workers for the EPHEMERAL volume..."
+for wip in $(tofu output -json worker_ips | jq -r '.[]'); do
+    echo "  waiting for Talos API on worker $wip..."
+    until talosctl -n "$wip" version &> /dev/null; do sleep 5; done
+    echo "  wiping vdb on $wip"
+    talosctl -n "$wip" wipe disk vdb || true
+done
+
 # Wait for cluster to be fully ready
 echo "Waiting for all nodes to be ready..."
 kubectl wait --for=condition=Ready nodes --all --timeout=300s
