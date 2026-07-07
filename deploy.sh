@@ -93,9 +93,17 @@ for wip in $(tofu output -json worker_ips | jq -r '.[]'); do
     talosctl -n "$wip" wipe disk vdb || true
 done
 
-# Wait for cluster to be fully ready
+# Wait for cluster to be fully ready. First wait for every node to register:
+# "kubectl wait nodes --all" errors out immediately with "no matching resources
+# found" if it runs before any kubelet has registered.
+expected_nodes=$(( $(tofu output -json controlplane_ips | jq 'length') + $(tofu output -json worker_ips | jq 'length') ))
+echo "Waiting for $expected_nodes nodes to register..."
+until [ "$(kubectl get nodes --no-headers 2>/dev/null | wc -l)" -ge "$expected_nodes" ]; do
+    echo "  $(kubectl get nodes --no-headers 2>/dev/null | wc -l)/$expected_nodes nodes registered..."
+    sleep 10
+done
 echo "Waiting for all nodes to be ready..."
-kubectl wait --for=condition=Ready nodes --all --timeout=300s
+kubectl wait --for=condition=Ready nodes --all --timeout=600s
 
 # Install OpenStack CSI driver for storage
 echo "Installing OpenStack CSI driver..."
