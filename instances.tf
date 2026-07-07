@@ -51,3 +51,29 @@ resource "openstack_compute_instance_v2" "worker" {
     openstack_compute_instance_v2.controlplane
   ]
 }
+
+# Create ports for the dedicated big-worker pool
+resource "openstack_networking_port_v2" "bigworker" {
+  count          = var.bigworker_count
+  name           = "${var.cluster_name}-bigworker-${count.index + 1}-port"
+  network_id     = data.openstack_networking_network_v2.network.id
+  admin_state_up = true
+  security_group_ids = [openstack_networking_secgroup_v2.talos.id]
+}
+
+# Big-worker instances (labeled/tainted for a dedicated workload, e.g. raw2science)
+resource "openstack_compute_instance_v2" "bigworker" {
+  count           = var.bigworker_count
+  name            = "${var.cluster_name}-bigworker-${count.index + 1}"
+  image_id        = data.openstack_images_image_v2.talos.id
+  flavor_id       = data.openstack_compute_flavor_v2.bigworker_flavor.id
+  user_data       = base64encode(data.talos_machine_configuration.bigworker.machine_configuration)
+
+  network {
+    port = openstack_networking_port_v2.bigworker[count.index].id
+  }
+
+  depends_on = [
+    openstack_compute_instance_v2.controlplane
+  ]
+}

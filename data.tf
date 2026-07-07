@@ -10,6 +10,10 @@ data "openstack_compute_flavor_v2" "worker_flavor" {
   name = var.worker_flavor_name
 }
 
+data "openstack_compute_flavor_v2" "bigworker_flavor" {
+  name = var.bigworker_flavor_name
+}
+
 data "openstack_images_image_v2" "talos" {
   name        = "talos"
   most_recent = true

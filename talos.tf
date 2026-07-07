@@ -96,3 +96,49 @@ data "talos_machine_configuration" "worker" {
     })
   ]
 }
+
+# Generate dedicated big-worker configuration: same as a worker (PTP,
+# EPHEMERAL on the secondary disk) plus a node label and taint so a specific
+# workload (e.g. raw2science) can target these nodes and nothing else lands
+# on them.
+data "talos_machine_configuration" "bigworker" {
+  cluster_name     = var.cluster_name
+  cluster_endpoint = "https://${local.vip_ip}:6443"
+  machine_type     = "worker"
+  machine_secrets  = talos_machine_secrets.cluster.machine_secrets
+
+  config_patches = [
+    # PTP configuration for workers
+    yamlencode({
+      machine = {
+        time = {
+          servers = ["/dev/ptp0"]
+        }
+        kernel = {
+          modules = [{
+            name = "ptp_kvm"
+          }]
+        }
+        # Label + taint so only tolerating/selecting pods schedule here.
+        nodeLabels = {
+          "fink.io/pool" = "raw2science"
+        }
+        nodeTaints = {
+          dedicated = "raw2science:NoSchedule"
+        }
+      }
+    }),
+    # EPHEMERAL volume on the large secondary disk vdb (see the worker block).
+    yamlencode({
+      apiVersion = "v1alpha1"
+      kind       = "VolumeConfig"
+      name       = "EPHEMERAL"
+      provisioning = {
+        diskSelector = {
+          match = "!system_disk"
+        }
+        grow = true
+      }
+    })
+  ]
+}

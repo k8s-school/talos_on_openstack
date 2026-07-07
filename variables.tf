@@ -29,6 +29,12 @@ variable "worker_flavor_name" {
   default     = "m1.medium"
 }
 
+variable "bigworker_flavor_name" {
+  description = "OpenStack flavor for the dedicated big-worker pool (e.g. memory-heavy Spark jobs like raw2science)"
+  type        = string
+  default     = "fink.m2.xlarge.1"
+}
+
 
 variable "control_plane_count" {
   description = "Number of control plane nodes"
@@ -40,6 +46,12 @@ variable "worker_count" {
   description = "Number of worker nodes"
   type        = number
   default     = 2
+}
+
+variable "bigworker_count" {
+  description = "Number of dedicated big-worker nodes (labeled/tainted for a specific workload)"
+  type        = number
+  default     = 0
 }
 
 

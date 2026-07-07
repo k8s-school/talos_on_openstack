@@ -86,7 +86,7 @@ fi
 # wiped once; until then the worker EPHEMERAL volume stays "failed" and the node
 # never becomes Ready. Wipe vdb on every worker so Talos provisions EPHEMERAL.
 echo "Wiping secondary disk (vdb) on workers for the EPHEMERAL volume..."
-for wip in $(tofu output -json worker_ips | jq -r '.[]'); do
+for wip in $(tofu output -json worker_ips | jq -r '.[]') $(tofu output -json bigworker_ips | jq -r '.[]'); do
     echo "  waiting for Talos API on worker $wip..."
     until talosctl -n "$wip" version &> /dev/null; do sleep 5; done
     echo "  wiping vdb on $wip"
@@ -96,7 +96,7 @@ done
 # Wait for cluster to be fully ready. First wait for every node to register:
 # "kubectl wait nodes --all" errors out immediately with "no matching resources
 # found" if it runs before any kubelet has registered.
-expected_nodes=$(( $(tofu output -json controlplane_ips | jq 'length') + $(tofu output -json worker_ips | jq 'length') ))
+expected_nodes=$(( $(tofu output -json controlplane_ips | jq 'length') + $(tofu output -json worker_ips | jq 'length') + $(tofu output -json bigworker_ips | jq 'length') ))
 echo "Waiting for $expected_nodes nodes to register..."
 until [ "$(kubectl get nodes --no-headers 2>/dev/null | wc -l)" -ge "$expected_nodes" ]; do
     echo "  $(kubectl get nodes --no-headers 2>/dev/null | wc -l)/$expected_nodes nodes registered..."

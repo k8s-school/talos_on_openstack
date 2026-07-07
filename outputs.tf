@@ -14,6 +14,11 @@ output "worker_ips" {
   value       = openstack_compute_instance_v2.worker[*].access_ip_v4
 }
 
+output "bigworker_ips" {
+  description = "Big-worker node IP addresses"
+  value       = openstack_compute_instance_v2.bigworker[*].access_ip_v4
+}
+
 output "vip_ip" {
   description = "Virtual IP address"
   value       = local.vip_ip
