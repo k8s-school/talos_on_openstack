@@ -100,13 +100,26 @@ fi
 # large secondary disk vdb (see talos.tf) so large container images fit.
 # OpenStack ships that disk pre-formatted, so Talos cannot claim it until it is
 # wiped once; until then the worker EPHEMERAL volume stays "failed" and the node
-# never becomes Ready. Wipe vdb on every worker so Talos provisions EPHEMERAL.
-echo "Wiping secondary disk (vdb) on workers for the EPHEMERAL volume..."
+# never becomes Ready.
+#
+# The wipe is conditional: we only wipe vdb when EPHEMERAL is NOT already
+# provisioned on it. Wiping vdb on a node that already has EPHEMERAL there would
+# destroy /var, so this keeps deploy.sh safe to re-run on a live cluster.
+echo "Ensuring the EPHEMERAL volume is provisioned on the secondary disk (vdb)..."
 for wip in $(tofu output -json worker_ips | jq -r '.[]') $(tofu output -json bigworker_ips | jq -r '.[]'); do
     echo "  waiting for Talos API on worker $wip..."
     until talosctl -n "$wip" version &> /dev/null; do sleep 5; done
-    echo "  wiping vdb on $wip"
-    talosctl -n "$wip" wipe disk vdb || true
+    # EPHEMERAL is provisioned on vdb once its VolumeStatus is phase=ready with a
+    # location under /dev/vdb (e.g. /dev/vdb1). Otherwise (fresh node, pre-formatted
+    # vdb still unclaimed) wipe vdb so Talos can provision it.
+    eph=$(talosctl -n "$wip" get volumestatus EPHEMERAL -o json 2>/dev/null \
+        | jq -r 'select((.spec.phase=="ready") and ((.spec.location // "") | startswith("/dev/vdb"))) | "ok"')
+    if [ "$eph" = "ok" ]; then
+        echo "  EPHEMERAL already provisioned on vdb for $wip, skipping wipe"
+    else
+        echo "  wiping vdb on $wip so Talos provisions EPHEMERAL there"
+        talosctl -n "$wip" wipe disk vdb || true
+    fi
 done
 
 # Wait for cluster to be fully ready. First wait for every node to register:
