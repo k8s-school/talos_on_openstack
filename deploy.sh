@@ -53,13 +53,22 @@ tofu output -raw talos_config > ~/.talos/config
 talosctl config endpoint "$CP_IP"
 talosctl config node "$CP_IP"
 
-# Bootstrap the cluster using the first control plane node (idempotent)
+# Bootstrap the cluster using the first control plane node (idempotent).
+# We attempt the bootstrap unconditionally and treat an already-bootstrapped
+# node as success: a second bootstrap returns "etcd data directory is not empty"
+# / "AlreadyExists". Relying on `talosctl health` here was flaky - it can report
+# unhealthy on a bootstrapped-but-still-settling cluster, causing a spurious
+# re-bootstrap that then aborts the whole script under `set -e`.
 echo "Bootstrapping cluster..."
-if talosctl health --wait-timeout=10s &> /dev/null; then
-    echo "Cluster is already bootstrapped and healthy"
+if bootstrap_err=$(talosctl bootstrap 2>&1); then
+    echo "Cluster bootstrapped"
 else
-    echo "Bootstrapping cluster..."
-    talosctl bootstrap
+    if echo "$bootstrap_err" | grep -qiE "already ?exists|not empty"; then
+        echo "Cluster is already bootstrapped"
+    else
+        echo "$bootstrap_err" >&2
+        exit 1
+    fi
 fi
 
 # Wait for the cluster to be ready
@@ -77,7 +86,14 @@ if kubectl cluster-info &> /dev/null; then
     echo "Kubeconfig already exists and cluster is accessible"
 else
     echo "Generating kubeconfig..."
-    talosctl kubeconfig
+    # Right after bootstrap the apiserver serving cert can be briefly not-yet-valid
+    # due to clock skew between the bastion and the control plane ("certificate ...
+    # is before ..."), which makes a single `talosctl kubeconfig` fail. Retry until
+    # it succeeds; --force overwrites any stale context from a previous cluster.
+    until talosctl kubeconfig --force; do
+        echo "  kubeconfig generation failed (apiserver not ready / clock skew), retrying in 10s..."
+        sleep 10
+    done
 fi
 
 # Workers place their EPHEMERAL volume (/var, incl. /var/lib/containerd) on the
