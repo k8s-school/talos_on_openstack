@@ -119,23 +119,22 @@ data "talos_machine_configuration" "bigworker" {
             name = "ptp_kvm"
           }]
         }
-        # Label + taint so only tolerating/selecting pods schedule here.
+        # Label so pods can target this pool; the taint keeps everything else
+        # off. The taint is set via the kubelet's register-with-taints arg
+        # rather than machine.nodeTaints: NodeApplyController applies nodeTaints
+        # with the kubelet identity, but NodeRestriction forbids a node from
+        # modifying its own taints ("not allowed to modify taints"), so
+        # nodeTaints is silently dropped on a worker. register-with-taints is
+        # applied at node registration, which NodeRestriction allows. The
+        # critical daemonsets (flannel, kube-proxy, cinder-csi) tolerate all
+        # taints, so a NoSchedule taint is safe at registration.
         nodeLabels = {
           "fink.io/pool" = "raw2science"
         }
-        # TODO(taint): machine.nodeTaints is applied by Talos's NodeApplyController
-        # using the kubelet identity, but NodeRestriction forbids a node from
-        # modifying its own taints ("node ... is not allowed to modify taints"),
-        # so the taint below is NOT applied on a fresh bigworker (the label is).
-        # Replace it with a kubelet register-with-taints arg, which is applied at
-        # node registration (allowed by NodeRestriction), e.g.:
-        #   kubelet = { extraArgs = { "register-with-taints" = "dedicated=raw2science:NoSchedule" } }
-        # (the critical daemonsets - flannel, kube-proxy, cinder-csi - tolerate
-        # all taints, so a NoSchedule taint is safe at registration).
-        # Until then the taint must be applied manually:
-        #   kubectl taint node <bigworker> dedicated=raw2science:NoSchedule
-        nodeTaints = {
-          dedicated = "raw2science:NoSchedule"
+        kubelet = {
+          extraArgs = {
+            "register-with-taints" = "dedicated=raw2science:NoSchedule"
+          }
         }
       }
     }),
