@@ -306,7 +306,7 @@ Pods reach servers outside the cluster NATed behind the external IP of the
 cluster router (`router_name`). When such a server lives in the same OpenStack
 project, its security groups must allow that address. `external_access`
 manages this: for each entry, OpenTofu creates a security group with one
-ingress rule per TCP port, from `<router external IP>/32`, and attaches it to
+ingress rule per declared TCP port, from `<router external IP>/32`, and attaches it to
 the ports of the servers listed in `external_access_targets`.
 
 - The group is attached **in addition** to the groups the servers already
@@ -350,10 +350,11 @@ tofu import 'openstack_networking_secgroup_rule_v2.external_access["hdfs-from-k8
 tofu plan
 ```
 
-The plan then updates the group description in place, replaces the two rules
-(OpenStack rules are immutable, and the imported ones have no description),
-and adds one attachment per server. Nothing else must change: stop if the plan
-touches an instance.
+Keep the rule descriptions of the existing rules in the profile: OpenStack
+rules are immutable, so a different description makes OpenTofu replace the
+rule. The plan then only updates the group description in place and adds one
+attachment per server. Nothing else must change: stop if the plan touches an
+instance.
 
 ## Cleanup
 

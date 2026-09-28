@@ -73,10 +73,13 @@ variable "router_name" {
 }
 
 variable "external_access" {
-  description = "Security groups opening services outside the cluster to its egress IP: name => TCP ports"
+  description = "Security groups opening services outside the cluster to its egress IP: name => one ingress rule per TCP port"
   type = map(object({
     description = string
-    ports       = list(number)
+    rules = list(object({
+      port        = number
+      description = string
+    }))
   }))
   default = {}
 }

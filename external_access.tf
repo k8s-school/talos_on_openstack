@@ -21,7 +21,7 @@ locals {
   # "<name>-<port>" => rule
   external_access_rules = merge([
     for name, access in var.external_access : {
-      for port in access.ports : "${name}-${port}" => { access = name, port = port }
+      for rule in access.rules : "${name}-${rule.port}" => merge(rule, { access = name })
     }
   ]...)
 
@@ -41,7 +41,7 @@ resource "openstack_networking_secgroup_v2" "external_access" {
 
 resource "openstack_networking_secgroup_rule_v2" "external_access" {
   for_each          = local.external_access_rules
-  description       = "${each.value.access}: TCP ${each.value.port} from the ${var.cluster_name} egress (${var.router_name})"
+  description       = each.value.description
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"

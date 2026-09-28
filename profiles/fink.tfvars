@@ -16,6 +16,9 @@ router_name = "fink-router"
 external_access = {
   hdfs-from-k8s = {
     description = "HDFS NameNode RPC (8020) and DataNode transfer (9866) from the Kubernetes cluster egress"
-    ports       = [8020, 9866]
+    rules = [
+      { port = 8020, description = "k8s to hdfs masters" },
+      { port = 9866, description = "k8s to hdfs slaves" },
+    ]
   }
 }
