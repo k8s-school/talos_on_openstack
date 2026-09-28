@@ -9,6 +9,12 @@ worker_flavor_name       = "m1.large"
 control_plane_count = 3
 worker_count       = 8
 
+# Profile: ./deploy.sh -p fink (see README "Profiles")
+# Servers opened to the cluster egress by the fink profile (hdfs-from-k8s):
+# external_access_targets = {
+#   hdfs-from-k8s = ["<NameNode IP>", "<DataNode IP>", ...]
+# }
+
 # Versions
 talos_version      = "v1.12.5"
 kubernetes_version = "v1.35.0"

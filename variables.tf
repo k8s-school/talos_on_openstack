@@ -54,6 +54,39 @@ variable "bigworker_count" {
   default     = 0
 }
 
+variable "bigworker_node_labels" {
+  description = "Node labels of the big-worker pool, so a workload can target it"
+  type        = map(string)
+  default     = {}
+}
+
+variable "bigworker_taint" {
+  description = "Taint of the big-worker pool (key=value:Effect), keeps other pods off it; empty for none"
+  type        = string
+  default     = ""
+}
+
+variable "router_name" {
+  description = "OpenStack router the cluster egresses through; its external IP is the source address allowed by external_access"
+  type        = string
+  default     = null
+}
+
+variable "external_access" {
+  description = "Security groups opening services outside the cluster to its egress IP: name => TCP ports"
+  type = map(object({
+    description = string
+    ports       = list(number)
+  }))
+  default = {}
+}
+
+variable "external_access_targets" {
+  description = "IPs of the servers each external_access security group is attached to: name => IPs (kept out of git)"
+  type        = map(list(string))
+  default     = {}
+}
+
 
 variable "talos_version" {
   description = "Talos version"

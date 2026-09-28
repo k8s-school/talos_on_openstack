@@ -70,6 +70,34 @@ Edit `terraform.tfvars` with your specific values:
 - Cluster sizing
 - Optional: specific VIP IP address
 
+### 4. Profiles (optional)
+
+A profile groups the settings of one use of the cluster in
+`profiles/<name>.tfvars`, versioned in this repository. Site-specific values
+(cluster size, server IPs) stay in `terraform.tfvars`, which is not versioned.
+
+| Profile | Adds |
+|---|---|
+| `fink` | one big worker (`fink.m2.xlarge.1`, label `fink.io/pool=raw2science`, taint `dedicated=raw2science:NoSchedule`) and access to the project's HDFS cluster (see [Access to servers outside the cluster](#access-to-servers-outside-the-cluster)) |
+
+Enable a profile once:
+
+```bash
+./deploy.sh -p fink
+```
+
+`deploy.sh` links it as `profile.auto.tfvars`. OpenTofu loads every
+`*.auto.tfvars` file on each run, after `terraform.tfvars`, so the profile
+stays active for later plain `tofu plan` / `tofu apply` and cannot be forgotten
+(forgetting it would plan to remove the big worker). To check or change the
+active profile:
+
+```bash
+readlink profile.auto.tfvars                      # active profile
+ln -sfn profiles/fink.tfvars profile.auto.tfvars  # same as ./deploy.sh -p fink, without deploying
+rm profile.auto.tfvars                            # no profile
+```
+
 ## Deployment
 
 ### Initialize and Deploy
@@ -271,6 +299,61 @@ large:
 talosctl -n "$NODE" get discoveredvolumes | grep EPHEMERAL
 talosctl -n "$NODE" mounts | awk '$NF=="/var"'   # SIZE column should be ~vdb size
 ```
+
+## Access to servers outside the cluster
+
+Pods reach servers outside the cluster NATed behind the external IP of the
+cluster router (`router_name`). When such a server lives in the same OpenStack
+project, its security groups must allow that address. `external_access`
+manages this: for each entry, OpenTofu creates a security group with one
+ingress rule per TCP port, from `<router external IP>/32`, and attaches it to
+the ports of the servers listed in `external_access_targets`.
+
+- The group is attached **in addition** to the groups the servers already
+  carry (`openstack_networking_port_secgroup_associate_v2` with
+  `enforce = false`): their own groups are never removed, and `tofu destroy`
+  only detaches what OpenTofu attached.
+- The source IP is read from the router, never hardcoded.
+- OpenTofu does not watch anything: a deleted group, a deleted or modified
+  rule, or a detached server is restored by the **next** `tofu apply`. Rules
+  added by hand to the group are not tracked. To detect drift without
+  applying, run `tofu plan -detailed-exitcode` (exit code 2 means drift).
+
+The `fink` profile declares the group; the server IPs go in
+`terraform.tfvars` (the repository is public):
+
+```hcl
+# terraform.tfvars
+external_access_targets = {
+  hdfs-from-k8s = [
+    "<NameNode IP>",
+    "<DataNode 1 IP>",
+    # ...
+  ]
+}
+```
+
+A server is looked up by the fixed IP of its port, so use the IP the server
+has on its own network (e.g. `openstack server list --name ccmaster1`).
+
+### Adopting an existing security group
+
+If the group was already created by hand (same name), import it and its rules
+once instead of creating a duplicate. Look up the IDs with
+`openstack security group rule list <name>`, then:
+
+```bash
+source ~/.novacreds/fink-openrc.sh
+tofu import 'openstack_networking_secgroup_v2.external_access["hdfs-from-k8s"]' <group ID>
+tofu import 'openstack_networking_secgroup_rule_v2.external_access["hdfs-from-k8s-8020"]' <rule ID>
+tofu import 'openstack_networking_secgroup_rule_v2.external_access["hdfs-from-k8s-9866"]' <rule ID>
+tofu plan
+```
+
+The plan then updates the group description in place, replaces the two rules
+(OpenStack rules are immutable, and the imported ones have no description),
+and adds one attachment per server. Nothing else must change: stop if the plan
+touches an instance.
 
 ## Cleanup
 

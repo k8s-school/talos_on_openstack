@@ -4,6 +4,39 @@ set -euxo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+usage() {
+    cat <<EOD
+Usage: $(basename "$0") [-p <profile>]
+
+Deploy the Talos cluster with OpenTofu.
+
+  -p <profile>  Enable profiles/<profile>.tfvars (e.g. fink). It is linked as
+                profile.auto.tfvars, which OpenTofu loads on every run, so the
+                profile stays active for later plain 'tofu plan/apply' too.
+                Without -p, the current link (if any) is kept.
+  -h            Show this help
+EOD
+}
+
+while getopts "p:h" opt; do
+    case $opt in
+        p) profile="$OPTARG" ;;
+        h) usage; exit 0 ;;
+        *) usage >&2; exit 2 ;;
+    esac
+done
+
+if [ -n "${profile:-}" ]; then
+    if [ ! -f "$DIR/profiles/$profile.tfvars" ]; then
+        echo "ERROR: unknown profile '$profile' (no profiles/$profile.tfvars)" >&2
+        exit 2
+    fi
+    ln -sfn "profiles/$profile.tfvars" "$DIR/profile.auto.tfvars"
+fi
+if [ -L "$DIR/profile.auto.tfvars" ]; then
+    echo "Active profile: $(readlink "$DIR/profile.auto.tfvars")"
+fi
+
 echo "=== Deploying Talos cluster with OpenTofu ==="
 
 # Check if OpenStack credentials are sourced

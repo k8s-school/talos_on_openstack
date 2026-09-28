@@ -6,3 +6,4 @@
 /controlplane.yaml
 /talosconfig
 /worker.yaml
+/profile.auto.tfvars

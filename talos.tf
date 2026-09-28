@@ -110,15 +110,17 @@ data "talos_machine_configuration" "bigworker" {
   config_patches = [
     # PTP configuration for workers
     yamlencode({
-      machine = {
-        time = {
-          servers = ["/dev/ptp0"]
-        }
-        kernel = {
-          modules = [{
-            name = "ptp_kvm"
-          }]
-        }
+      machine = merge(
+        {
+          time = {
+            servers = ["/dev/ptp0"]
+          }
+          kernel = {
+            modules = [{
+              name = "ptp_kvm"
+            }]
+          }
+        },
         # Label so pods can target this pool; the taint keeps everything else
         # off. The taint is set via the kubelet's register-with-taints arg
         # rather than machine.nodeTaints: NodeApplyController applies nodeTaints
@@ -128,15 +130,10 @@ data "talos_machine_configuration" "bigworker" {
         # applied at node registration, which NodeRestriction allows. The
         # critical daemonsets (flannel, kube-proxy, cinder-csi) tolerate all
         # taints, so a NoSchedule taint is safe at registration.
-        nodeLabels = {
-          "fink.io/pool" = "raw2science"
-        }
-        kubelet = {
-          extraArgs = {
-            "register-with-taints" = "dedicated=raw2science:NoSchedule"
-          }
-        }
-      }
+        # Both are set by a profile (see profiles/), omitted when empty.
+        { for k, v in { nodeLabels = var.bigworker_node_labels } : k => v if length(var.bigworker_node_labels) > 0 },
+        { for k, v in { kubelet = { extraArgs = { "register-with-taints" = var.bigworker_taint } } } : k => v if var.bigworker_taint != "" }
+      )
     }),
     # EPHEMERAL volume on the large secondary disk vdb (see the worker block).
     yamlencode({
