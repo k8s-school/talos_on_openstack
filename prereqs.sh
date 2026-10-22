@@ -6,6 +6,7 @@ set -euo pipefail
 TOFU_VERSION="1.8.4"
 TALOS_VERSION="v1.12.6"
 KUBECTL_VERSION="v1.35.0"
+ARGO_VERSION="v4.1.5"
 
 echo "=== Installing Prerequisites for Talos on OpenStack ==="
 
@@ -61,6 +62,19 @@ else
     echo "kubectl installed: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
 fi
 
+# Install argo (Argo Workflows CLI, matches the in-cluster workflow-controller)
+echo "Installing argo ${ARGO_VERSION}..."
+if command -v argo &> /dev/null; then
+    echo "argo is already installed: $(argo version --short)"
+else
+    ARGO_GZ="/tmp/argo-linux-amd64.gz"
+    curl -Lo "$ARGO_GZ" "https://github.com/argoproj/argo-workflows/releases/download/${ARGO_VERSION}/argo-linux-amd64.gz"
+    gunzip -f "$ARGO_GZ"
+    chmod +x /tmp/argo-linux-amd64
+    sudo mv /tmp/argo-linux-amd64 /usr/local/bin/argo
+    echo "argo installed: $(argo version --short)"
+fi
+
 # Create .talos directory if it doesn't exist
 if [ ! -d "$HOME/.talos" ]; then
     echo "Creating .talos directory..."
@@ -73,6 +87,7 @@ echo "Installed versions:"
 echo "- OpenTofu: $(tofu version)"
 echo "- talosctl: $(talosctl version --short --client)"
 echo "- kubectl: $(kubectl version --client --short 2>/dev/null || kubectl version --client)"
+echo "- argo: $(argo version --short)"
 echo "- jq: $(jq --version)"
 echo ""
 echo "Next steps:"
