@@ -25,21 +25,21 @@ resource "openstack_networking_secgroup_rule_v2" "kubernetes_api" {
   security_group_id = openstack_networking_secgroup_v2.talos.id
 }
 
-# Allow all TCP traffic within the fink subnet
+# Allow all TCP traffic within the cluster subnet
 resource "openstack_networking_secgroup_rule_v2" "internal_tcp" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "tcp"
-  remote_ip_prefix  = "10.180.15.0/24"
+  remote_ip_prefix  = var.subnet_cidr
   security_group_id = openstack_networking_secgroup_v2.talos.id
 }
 
-# Allow all UDP traffic within the fink subnet (required for DNS and VXLAN/CNI)
+# Allow all UDP traffic within the cluster subnet (required for DNS and VXLAN/CNI)
 resource "openstack_networking_secgroup_rule_v2" "internal_udp" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "udp"
-  remote_ip_prefix  = "10.180.15.0/24"
+  remote_ip_prefix  = var.subnet_cidr
   security_group_id = openstack_networking_secgroup_v2.talos.id
 }
 
@@ -48,7 +48,7 @@ resource "openstack_networking_secgroup_rule_v2" "internal_icmp" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "icmp"
-  remote_ip_prefix  = "10.180.15.0/24"
+  remote_ip_prefix  = var.subnet_cidr
   security_group_id = openstack_networking_secgroup_v2.talos.id
 }
 
@@ -57,7 +57,7 @@ resource "openstack_networking_secgroup_rule_v2" "vrrp" {
   direction         = "ingress"
   ethertype         = "IPv4"
   protocol          = "112"
-  remote_ip_prefix  = "10.180.15.0/24"
+  remote_ip_prefix  = var.subnet_cidr
   security_group_id = openstack_networking_secgroup_v2.talos.id
 }
 

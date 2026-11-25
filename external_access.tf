@@ -10,13 +10,18 @@
 # An `apply` restores a deleted group, rule or attachment. Rules added by hand
 # to the group are not tracked.
 
+# Existing router (CC-IN2P3); with create_network the created router is used
 data "openstack_networking_router_v2" "egress" {
-  count = length(var.external_access) > 0 ? 1 : 0
+  count = length(var.external_access) > 0 && !var.create_network ? 1 : 0
   name  = var.router_name
 }
 
 locals {
-  egress_ip = length(var.external_access) > 0 ? data.openstack_networking_router_v2.egress[0].external_fixed_ip[0].ip_address : null
+  egress_ip = length(var.external_access) == 0 ? null : (
+    var.create_network
+    ? openstack_networking_router_v2.cluster[0].external_fixed_ip[0].ip_address
+    : data.openstack_networking_router_v2.egress[0].external_fixed_ip[0].ip_address
+  )
 
   # "<name>-<port>" => rule
   external_access_rules = merge([

@@ -12,9 +12,33 @@ variable "vip_ip" {
 }
 
 variable "network_name" {
-  description = "OpenStack network name"
+  description = "OpenStack network name: an existing network, or the one to create when create_network = true"
   type        = string
   default     = "fink"
+}
+
+variable "create_network" {
+  description = "Create a dedicated network, subnet and router (named network_name, router_name), instead of using an existing network"
+  type        = bool
+  default     = false
+}
+
+variable "subnet_cidr" {
+  description = "CIDR of the cluster subnet: allowed by the internal security group rules, and used for the subnet when create_network = true"
+  type        = string
+  default     = "10.180.15.0/24"
+}
+
+variable "external_network_name" {
+  description = "External network the created router uses as gateway (create_network = true only)"
+  type        = string
+  default     = "public"
+}
+
+variable "dns_nameservers" {
+  description = "DNS servers of the created subnet (create_network = true only); empty uses the cloud default"
+  type        = list(string)
+  default     = []
 }
 
 variable "controlplane_flavor_name" {
@@ -67,7 +91,7 @@ variable "bigworker_taint" {
 }
 
 variable "router_name" {
-  description = "OpenStack router the cluster egresses through; its external IP is the source address allowed by external_access"
+  description = "OpenStack router the cluster egresses through (its external IP is the source address allowed by external_access); with create_network, the router to create, default <network_name>-router"
   type        = string
   default     = null
 }
@@ -90,6 +114,12 @@ variable "external_access_targets" {
   default     = {}
 }
 
+
+variable "talos_image_name" {
+  description = "Glance image the nodes boot from (e.g. talos-v1.12.5); changing it replaces the nodes"
+  type        = string
+  default     = "talos"
+}
 
 variable "talos_version" {
   description = "Talos version"

@@ -2,7 +2,7 @@
 resource "openstack_networking_port_v2" "controlplane" {
   count          = var.control_plane_count
   name           = "${var.cluster_name}-control-plane-${count.index + 1}-port"
-  network_id     = data.openstack_networking_network_v2.network.id
+  network_id     = local.network_id
   admin_state_up = true
   security_group_ids = [openstack_networking_secgroup_v2.talos.id]
 
@@ -24,13 +24,16 @@ resource "openstack_compute_instance_v2" "controlplane" {
   network {
     port = openstack_networking_port_v2.controlplane[count.index].id
   }
+
+  # With create_network, boot only once the router gives the nodes egress
+  depends_on = [openstack_networking_router_interface_v2.cluster]
 }
 
 # Create ports for workers
 resource "openstack_networking_port_v2" "worker" {
   count          = var.worker_count
   name           = "${var.cluster_name}-worker-${count.index + 1}-port"
-  network_id     = data.openstack_networking_network_v2.network.id
+  network_id     = local.network_id
   admin_state_up = true
   security_group_ids = [openstack_networking_secgroup_v2.talos.id]
 }
@@ -56,7 +59,7 @@ resource "openstack_compute_instance_v2" "worker" {
 resource "openstack_networking_port_v2" "bigworker" {
   count          = var.bigworker_count
   name           = "${var.cluster_name}-bigworker-${count.index + 1}-port"
-  network_id     = data.openstack_networking_network_v2.network.id
+  network_id     = local.network_id
   admin_state_up = true
   security_group_ids = [openstack_networking_secgroup_v2.talos.id]
 }
@@ -66,7 +69,7 @@ resource "openstack_compute_instance_v2" "bigworker" {
   count           = var.bigworker_count
   name            = "${var.cluster_name}-bigworker-${count.index + 1}"
   image_id        = data.openstack_images_image_v2.talos.id
-  flavor_id       = data.openstack_compute_flavor_v2.bigworker_flavor.id
+  flavor_id       = data.openstack_compute_flavor_v2.bigworker_flavor[0].id
   user_data       = base64encode(data.talos_machine_configuration.bigworker.machine_configuration)
 
   network {
