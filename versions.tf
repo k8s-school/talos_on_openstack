@@ -7,7 +7,7 @@ terraform {
     }
     talos = {
       source  = "siderolabs/talos"
-      version = "~> 0.6"
+      version = "~> 0.10.0" # 0.12 generates configs that Talos v1.12 rejects
     }
   }
 }

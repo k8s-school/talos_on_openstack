@@ -1,10 +1,10 @@
 # IJCLab example: the cluster gets its own network, subnet and router
-cluster_name = "tofu-fink"
+cluster_name = "ijclab-fink"
 create_network        = true
 network_name          = "k8s-rd"            # router: k8s-rd-router (router_name)
 subnet_cidr           = "192.168.100.0/24"
 external_network_name = "public"            # check: openstack network list --external
-# dns_nameservers     = ["<IJCLab DNS>"]
+dns_nameservers       = ["134.158.88.149", "134.158.88.78"]  # the subnet default DNS does not resolve
 # vip_ip              = "192.168.100.250"   # Optional, otherwise auto-assigned
 
 # Same size as CC-IN2P3: 54 vCPU, 108 GB RAM (quota of k8s-rd: 75 vCPU, 150 GB)
@@ -12,6 +12,7 @@ external_network_name = "public"            # check: openstack network list --ex
 # overrides bigworker_flavor_name: an IJCLab variant of the profile is needed
 controlplane_flavor_name = "os.2"   # 2 vCPU, 4 GB, as m1.medium at CC-IN2P3
 worker_flavor_name       = "os.4"   # 4 vCPU, 8 GB, as m1.large at CC-IN2P3
+worker_volume_size       = 50       # /var disk (vdb): IJCLab flavors have no ephemeral disk
 
 # Cluster sizing
 control_plane_count = 3

@@ -80,3 +80,27 @@ resource "openstack_compute_instance_v2" "bigworker" {
     openstack_compute_instance_v2.controlplane
   ]
 }
+# Secondary disk of workers and big workers, for clouds whose flavors have no
+# ephemeral disk (IJCLab): talos.tf puts the EPHEMERAL volume (/var) on the
+# non-install disk, vdb, which an ephemeral flavor provides at CC-IN2P3.
+locals {
+  data_volume_nodes = var.worker_volume_size > 0 ? merge(
+    { for s in openstack_compute_instance_v2.worker : s.name => s.id },
+    { for s in openstack_compute_instance_v2.bigworker : s.name => s.id },
+  ) : {}
+}
+
+resource "openstack_blockstorage_volume_v3" "data" {
+  for_each = var.worker_volume_size > 0 ? toset(concat(
+    [for i in range(var.worker_count) : "${var.cluster_name}-worker-${i + 1}"],
+    [for i in range(var.bigworker_count) : "${var.cluster_name}-bigworker-${i + 1}"],
+  )) : toset([])
+  name = "${each.key}-data"
+  size = var.worker_volume_size
+}
+
+resource "openstack_compute_volume_attach_v2" "data" {
+  for_each    = openstack_blockstorage_volume_v3.data
+  instance_id = local.data_volume_nodes[each.key]
+  volume_id   = each.value.id
+}

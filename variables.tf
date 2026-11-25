@@ -115,6 +115,12 @@ variable "external_access_targets" {
 }
 
 
+variable "worker_volume_size" {
+  description = "Size (GB) of a Cinder volume attached to each worker and big worker as its /var disk (vdb); 0 when the flavor has an ephemeral disk (CC-IN2P3)"
+  type        = number
+  default     = 0
+}
+
 variable "talos_image_name" {
   description = "Glance image the nodes boot from (e.g. talos-v1.12.5); changing it replaces the nodes"
   type        = string

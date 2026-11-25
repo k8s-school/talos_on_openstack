@@ -92,6 +92,14 @@ talosctl config node "$CP_IP"
 # / "AlreadyExists". Relying on `talosctl health` here was flaky - it can report
 # unhealthy on a bootstrapped-but-still-settling cluster, causing a spurious
 # re-bootstrap that then aborts the whole script under `set -e`.
+echo "Waiting for the Talos API on $CP_IP..."
+# Fresh nodes take a couple of minutes to boot and load their config;
+# bootstrapping before that fails with "connection refused".
+for _ in $(seq 120); do
+    talosctl version &> /dev/null && break
+    sleep 5
+done
+
 echo "Bootstrapping cluster..."
 if bootstrap_err=$(talosctl bootstrap 2>&1); then
     echo "Cluster bootstrapped"
